@@ -1,0 +1,20 @@
+export type DbJobRow = {
+  id: string;
+  employer_id: string;
+  title: string;
+  location: string;
+  salary_range: string | null;
+  description: string;
+  felon_friendly: boolean;
+  employment_type: string | null;
+  schedule: string | null;
+  job_category: string | null;
+  required_skills: string[] | null;
+  preferred_skills: string[] | null;
+  ai_summary: string | null;
+  ai_tags: string[] | null;
+  felony_friendly_rating: number | null;
+  ai_enriched_at: string | null;
+  created_at: string;
+  company_profiles: { company_name: string; felon_friendly: boolean } | null;
+};
