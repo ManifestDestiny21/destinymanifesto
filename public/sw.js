@@ -1,5 +1,5 @@
 /* Destiny Manifesto — basic offline shell cache for installability */
-const CACHE = "destiny-manifesto-v1";
+const CACHE = "destiny-manifesto-v2";
 const PRECACHE = [
   "/",
   "/manifest.webmanifest",
