@@ -39,6 +39,7 @@ export function HousingList({ options }: { options: HousingOption[] }) {
               <span className="text-xs text-[#7a7974]">{h.type}</span>
             </div>
             <p className="mt-1 text-sm text-[#7a7974]">
+              {h.location ? `${h.location} · ` : ""}
               {h.cost} · {h.distance}
               {h.acceptsFelony ? " · Accepts felony history (reported)" : ""}
             </p>

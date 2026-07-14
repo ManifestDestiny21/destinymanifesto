@@ -4,8 +4,8 @@ import { Card } from "@/components/ui/card";
 import { Disclaimer } from "@/components/ui/disclaimer";
 import { AiBadge } from "@/components/ui/ai-badge";
 import { requireRole } from "@/lib/auth/guards";
+import { snapResourcesForSeeker } from "@/lib/local-content";
 import { getJobSeekerProfile } from "@/lib/user-profile-server";
-import { RESOURCES } from "@/lib/mock-data";
 import { normalizeOnboardingProfile, resolveSeekerLocation } from "@/lib/user-profile";
 
 const DOCUMENTS = [
@@ -21,7 +21,7 @@ export default async function SnapPage() {
   const profileRow = await getJobSeekerProfile(supabase, user.id);
   const profile = profileRow ? normalizeOnboardingProfile(profileRow) : null;
   const seekerLocation = resolveSeekerLocation(profile);
-  const snapResources = RESOURCES.filter((r) => r.category === "SNAP Benefits");
+  const snapResources = snapResourcesForSeeker(seekerLocation);
 
   return (
     <div>

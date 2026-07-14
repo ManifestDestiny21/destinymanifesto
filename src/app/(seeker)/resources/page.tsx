@@ -3,9 +3,9 @@ import { PageHeader } from "@/components/page-header";
 import { ResourceCard } from "@/components/resource-card";
 import { Card } from "@/components/ui/card";
 import { requireRole } from "@/lib/auth/guards";
+import { resourcesForSeeker } from "@/lib/local-content";
 import { getJobSeekerProfile } from "@/lib/user-profile-server";
-import { RESOURCES } from "@/lib/mock-data";
-import { locationMatchesMarket, normalizeOnboardingProfile, resolveSeekerLocation } from "@/lib/user-profile";
+import { normalizeOnboardingProfile, resolveSeekerLocation } from "@/lib/user-profile";
 
 const CATEGORIES = [
   { name: "SNAP Benefits", href: "/snap" },
@@ -24,11 +24,7 @@ export default async function ResourcesPage() {
   const profileRow = await getJobSeekerProfile(supabase, user.id);
   const profile = profileRow ? normalizeOnboardingProfile(profileRow) : null;
   const seekerLocation = resolveSeekerLocation(profile);
-
-  const localResources = RESOURCES.filter((r) =>
-    locationMatchesMarket(r.location, seekerLocation)
-  );
-  const resources = localResources.length > 0 ? localResources : RESOURCES;
+  const resources = resourcesForSeeker(seekerLocation);
 
   return (
     <div>
@@ -45,7 +41,9 @@ export default async function ResourcesPage() {
           </Link>
         ))}
       </div>
-      <h2 className="mb-3 font-semibold">Near you — {seekerLocation.city}, {seekerLocation.state}</h2>
+      <h2 className="mb-3 font-semibold">
+        Near you — {seekerLocation.city}, {seekerLocation.state}
+      </h2>
       <div className="space-y-4">
         {resources.map((r) => (
           <ResourceCard key={r.id} resource={r} />

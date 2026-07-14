@@ -5,7 +5,7 @@ type ButtonProps = {
   href?: string;
   variant?: "primary" | "secondary" | "ghost";
   className?: string;
-  onClick?: () => void;
+  onClick?: () => void | Promise<void>;
   type?: "button" | "submit";
   disabled?: boolean;
 };

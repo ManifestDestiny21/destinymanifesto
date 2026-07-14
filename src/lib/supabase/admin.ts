@@ -4,11 +4,14 @@ import { getSupabaseEnv } from "./env";
 function getServiceRoleKey(): string | undefined {
   const raw = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!raw) return undefined;
-  const trimmed = raw.trim().replace(/^['"]|['"]$/g, "");
-  if ([...trimmed].some((char) => char.charCodeAt(0) > 255)) {
-    return undefined;
-  }
-  return trimmed;
+  const cleaned = [...raw.trim()]
+    .filter((char) => {
+      const code = char.charCodeAt(0);
+      return code >= 32 && code <= 126;
+    })
+    .join("")
+    .replace(/^['"]|['"]$/g, "");
+  return cleaned || undefined;
 }
 
 export function createAdminClient(): SupabaseClient | null {

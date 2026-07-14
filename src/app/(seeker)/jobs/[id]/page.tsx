@@ -8,6 +8,8 @@ import { Card } from "@/components/ui/card";
 import { requireRole } from "@/lib/auth/guards";
 import { fetchApplicationStatusMap } from "@/lib/job-applications";
 import { fetchLiveJobById } from "@/lib/jobs/fetch-jobs";
+import { getJobSeekerProfile } from "@/lib/user-profile-server";
+import { normalizeOnboardingProfile, resolveSeekerLocation } from "@/lib/user-profile";
 
 export default async function JobDetailPage({
   params,
@@ -16,7 +18,10 @@ export default async function JobDetailPage({
 }) {
   const { id } = await params;
   const { supabase, user } = await requireRole("job_seeker");
-  const { job, source } = await fetchLiveJobById(id);
+  const profileRow = await getJobSeekerProfile(supabase, user.id);
+  const profile = profileRow ? normalizeOnboardingProfile(profileRow) : null;
+  const seekerLocation = resolveSeekerLocation(profile);
+  const { job, source } = await fetchLiveJobById(id, seekerLocation);
   if (!job) notFound();
 
   const statuses = await fetchApplicationStatusMap(supabase, user.id, [job.id]);

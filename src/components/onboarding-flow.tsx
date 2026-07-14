@@ -61,9 +61,20 @@ export function OnboardingFlow({ profile }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const autoSaveReady = useRef(false);
+  const latestRef = useRef({
+    preferredName,
+    city,
+    state,
+    zip,
+    radius,
+    stepValues,
+  });
 
-  const current = ONBOARDING_STEPS[step];
-  const isLast = step === ONBOARDING_STEPS.length - 1;
+  latestRef.current = { preferredName, city, state, zip, radius, stepValues };
+
+  const safeStep = Math.min(Math.max(step, 0), ONBOARDING_STEPS.length - 1);
+  const current = ONBOARDING_STEPS[safeStep];
+  const isLast = safeStep === ONBOARDING_STEPS.length - 1;
   const isRestrictions = current.id === "restrictions";
 
   function setStepValue(stepId: string, value: string) {
@@ -71,40 +82,32 @@ export function OnboardingFlow({ profile }: Props) {
   }
 
   function writeLocalDraft(targetStep: number) {
+    const latest = latestRef.current;
     writeOnboardingDraft(profile.user_id, {
       step: targetStep,
-      preferredName,
-      city,
-      state,
-      zip,
-      radius,
-      stepValues,
+      preferredName: latest.preferredName,
+      city: latest.city,
+      state: latest.state,
+      zip: latest.zip,
+      radius: latest.radius,
+      stepValues: latest.stepValues,
       updatedAt: new Date().toISOString(),
     });
   }
 
-  async function saveProgress(
+  async function persistToServer(
     targetStep: number,
-    options: { completed?: boolean; exit?: boolean; silent?: boolean } = {}
+    options: { completed?: boolean } = {}
   ): Promise<boolean> {
-    if (!options.silent) {
-      setSaving(true);
-    }
-    setError(null);
-    if (!options.silent) {
-      setSaveMessage(null);
-    }
-
-    writeLocalDraft(targetStep);
-
+    const latest = latestRef.current;
     const payload = buildOnboardingPayload({
       step: targetStep,
-      preferredName,
-      city,
-      state,
-      zip,
-      radius,
-      stepValues,
+      preferredName: latest.preferredName,
+      city: latest.city,
+      state: latest.state,
+      zip: latest.zip,
+      radius: latest.radius,
+      stepValues: latest.stepValues,
       onboardingCompleted: options.completed ?? false,
     });
 
@@ -115,41 +118,60 @@ export function OnboardingFlow({ profile }: Props) {
         body: JSON.stringify(payload),
       });
 
-      const responsePayload = await response.json();
+      const responsePayload = await response.json().catch(() => ({}));
       if (!response.ok) {
         throw new Error(responsePayload.error ?? "Could not save progress");
       }
-
-      if (options.completed || options.exit) {
-        clearOnboardingDraft(profile.user_id);
-      }
-
-      if (options.silent) {
-        return true;
-      }
-
-      if (options.exit || options.completed) {
-        router.push("/dashboard");
-        router.refresh();
-        return true;
-      }
-
-      if (!options.silent) {
-        setSaveMessage("Progress saved.");
-      }
-
-      setStep(targetStep);
       return true;
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Could not save progress";
-      if (!options.silent) {
-        setError(`${message} Your answers are kept on this device until you reconnect.`);
-      }
+      setError(`${message} Your answers are still saved on this device.`);
       return false;
-    } finally {
-      if (!options.silent) {
-        setSaving(false);
+    }
+  }
+
+  async function saveProgress(
+    targetStep: number,
+    options: { completed?: boolean; exit?: boolean; silent?: boolean } = {}
+  ): Promise<boolean> {
+    writeLocalDraft(targetStep);
+
+    // Always move the UI immediately — never block Back / Skip / Continue on the network
+    if (!options.silent && !options.exit && !options.completed) {
+      setStep(targetStep);
+    }
+
+    if (!options.silent) {
+      setSaving(true);
+      setError(null);
+      setSaveMessage(null);
+    }
+
+    const ok = await persistToServer(targetStep, { completed: options.completed });
+
+    if (options.silent) {
+      if (ok) setSaveMessage("Progress saved.");
+      return ok;
+    }
+
+    try {
+      if (ok) {
+        setSaveMessage("Progress saved.");
+        if (options.completed || options.exit) {
+          clearOnboardingDraft(profile.user_id);
+          router.push("/dashboard");
+          router.refresh();
+          return true;
+        }
+      } else if (options.exit || options.completed) {
+        // Still let them leave onboarding even if the server save failed
+        router.push("/dashboard");
+        return false;
       }
+
+      return ok;
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -160,12 +182,12 @@ export function OnboardingFlow({ profile }: Props) {
     }
 
     const timer = window.setTimeout(() => {
-      void saveProgress(step, { silent: true });
-      setSaveMessage("Progress saved.");
+      void saveProgress(safeStep, { silent: true });
     }, 1500);
 
     return () => window.clearTimeout(timer);
-  }, [preferredName, city, state, zip, radius, stepValues, step]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preferredName, city, state, zip, radius, stepValues, safeStep]);
 
   function validateCurrentStep(): string | null {
     if (current.id === "name" && !preferredName.trim()) {
@@ -196,42 +218,37 @@ export function OnboardingFlow({ profile }: Props) {
     }
 
     if (isLast) {
-      await saveProgress(step, { completed: true });
+      await saveProgress(safeStep, { completed: true });
       return;
     }
 
-    await saveProgress(step + 1);
+    await saveProgress(safeStep + 1);
   }
 
   async function handleSkip() {
     if (isLast) {
-      await saveProgress(step, { completed: true });
+      await saveProgress(safeStep, { completed: true });
       return;
     }
-    await saveProgress(step + 1);
+    await saveProgress(safeStep + 1);
   }
 
   async function handleBack() {
-    if (step === 0) return;
-    const previousStep = step - 1;
-    const saved = await saveProgress(previousStep);
-    if (!saved) {
-      setStep(previousStep);
-      writeLocalDraft(previousStep);
-    }
+    if (safeStep === 0) return;
+    await saveProgress(safeStep - 1);
   }
 
   async function handleSaveOnly() {
-    await saveProgress(step);
+    await saveProgress(safeStep);
   }
 
   async function handleSkipAll() {
-    await saveProgress(step, { exit: true });
+    await saveProgress(safeStep, { exit: true });
   }
 
   async function handleLeaveToDashboard(event: React.MouseEvent) {
     event.preventDefault();
-    await saveProgress(step, { exit: true });
+    await saveProgress(safeStep, { exit: true });
   }
 
   return (
@@ -239,13 +256,12 @@ export function OnboardingFlow({ profile }: Props) {
       <button
         type="button"
         onClick={handleLeaveToDashboard}
-        disabled={saving}
-        className="text-sm text-[#7a7974] hover:text-[#28251d] disabled:opacity-50"
+        className="text-sm text-[#7a7974] hover:text-[#28251d]"
       >
         ← Back to dashboard
       </button>
       <p className="mt-4 text-xs font-medium text-[#7a7974]">
-        Step {step + 1} of {ONBOARDING_STEPS.length}
+        Step {safeStep + 1} of {ONBOARDING_STEPS.length}
       </p>
       <p className="mt-1 text-xs text-[#437a22]">
         Progress saves automatically as you type and when you continue.
@@ -256,7 +272,7 @@ export function OnboardingFlow({ profile }: Props) {
       <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#7a7974]/20">
         <div
           className="h-full rounded-full bg-[#437a22] transition-all"
-          style={{ width: `${((step + 1) / ONBOARDING_STEPS.length) * 100}%` }}
+          style={{ width: `${((safeStep + 1) / ONBOARDING_STEPS.length) * 100}%` }}
         />
       </div>
       <h1 className="mt-6 text-2xl font-bold">{current.title}</h1>
@@ -283,7 +299,7 @@ export function OnboardingFlow({ profile }: Props) {
             <input
               value={city}
               onChange={(e) => setCity(e.target.value)}
-              placeholder="City (e.g. Nashville, Memphis)"
+              placeholder="City (e.g. Clarksville, Nashville)"
               className={inputClass}
             />
             <input
@@ -327,28 +343,27 @@ export function OnboardingFlow({ profile }: Props) {
       {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}
 
       <div className="mt-6 flex flex-wrap gap-3">
-        {step > 0 ? (
-          <Button variant="secondary" disabled={saving} onClick={handleBack}>
+        {safeStep > 0 ? (
+          <Button variant="secondary" onClick={() => void handleBack()}>
             Back
           </Button>
         ) : null}
-        <Button variant="ghost" disabled={saving} onClick={handleSaveOnly}>
+        <Button variant="ghost" onClick={() => void handleSaveOnly()}>
           {saving ? "Saving..." : "Save progress"}
         </Button>
         {current.optional ? (
-          <Button variant="ghost" disabled={saving} onClick={handleSkip} className="flex-1">
+          <Button variant="ghost" onClick={() => void handleSkip()} className="flex-1">
             Skip
           </Button>
         ) : null}
-        <Button className="flex-1" disabled={saving} onClick={handleContinue}>
+        <Button className="flex-1" onClick={() => void handleContinue()}>
           {saving ? "Saving..." : isLast ? "Finish" : "Continue"}
         </Button>
       </div>
       <button
         type="button"
-        disabled={saving}
-        onClick={handleSkipAll}
-        className="mt-4 block w-full text-center text-sm text-[#7a7974] hover:text-[#28251d] disabled:opacity-50"
+        onClick={() => void handleSkipAll()}
+        className="mt-4 block w-full text-center text-sm text-[#7a7974] hover:text-[#28251d]"
       >
         Skip onboarding for now
       </button>

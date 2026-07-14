@@ -1,7 +1,11 @@
-import { bootstrapJobSeekerProfile } from "@/lib/user-profile-server";
+import { bootstrapJobSeekerProfile, getJobSeekerProfile } from "@/lib/user-profile-server";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { buildDatabaseProfileUpdate, normalizeOnboardingProfile, type ProfileUpdatePayload } from "@/lib/user-profile";
+import {
+  buildDatabaseProfileUpdate,
+  normalizeOnboardingProfile,
+  type ProfileUpdatePayload,
+} from "@/lib/user-profile";
 
 async function getAuthenticatedProfile() {
   const supabase = await createClient();
@@ -21,19 +25,15 @@ export async function GET() {
   if ("error" in auth) return auth.error;
 
   const { supabase, user } = auth;
-  const { data, error } = await supabase
-    .from("user_profiles")
-    .select("*")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  try {
+    const data = await getJobSeekerProfile(supabase, user.id);
+    return NextResponse.json({
+      profile: data ? normalizeOnboardingProfile(data) : null,
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Could not load profile";
+    return NextResponse.json({ error: message }, { status: 400 });
   }
-
-  return NextResponse.json({
-    profile: data ? normalizeOnboardingProfile(data as Record<string, unknown>) : null,
-  });
 }
 
 export async function POST(request: Request) {
@@ -71,7 +71,19 @@ export async function POST(request: Request) {
     .upsert(signupData, { onConflict: "user_id" });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    // Minimal fallback if older required columns are absent
+    const { error: minimalError } = await supabase.from("user_profiles").upsert(
+      {
+        user_id: user.id,
+        role: "job_seeker",
+        onboarding_completed: Boolean(body.onboarding_completed),
+        onboarding_data: body.profile_data ?? body.onboarding_data ?? { onboarding_step: 0 },
+      },
+      { onConflict: "user_id" }
+    );
+    if (minimalError) {
+      return NextResponse.json({ error: minimalError.message || error.message }, { status: 400 });
+    }
   }
 
   return NextResponse.json({ success: true });
@@ -84,17 +96,7 @@ export async function PATCH(request: Request) {
   const { supabase, user } = auth;
   const body = (await request.json()) as ProfileUpdatePayload;
 
-  const existingResult = await supabase
-    .from("user_profiles")
-    .select("*")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (existingResult.error) {
-    return NextResponse.json({ error: existingResult.error.message }, { status: 400 });
-  }
-
-  let existingRow = existingResult.data as Record<string, unknown> | null;
+  let existingRow = await getJobSeekerProfile(supabase, user.id);
 
   if (!existingRow) {
     const bootstrapped = await bootstrapJobSeekerProfile(supabase, user.id);
@@ -108,19 +110,25 @@ export async function PATCH(request: Request) {
   }
 
   const update = buildDatabaseProfileUpdate(existingRow, body);
+  const profileId = existingRow.id as string | undefined;
 
-  const { data, error } = await supabase
-    .from("user_profiles")
-    .update(update)
-    .eq("user_id", user.id)
-    .select("*")
-    .single();
+  let query = supabase.from("user_profiles").update(update).eq("user_id", user.id);
+  if (profileId) {
+    query = query.eq("id", profileId);
+  }
+
+  const { data, error } = await query.select("*").limit(1);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
+  const row = data?.[0] as Record<string, unknown> | undefined;
+  if (!row) {
+    return NextResponse.json({ error: "Profile update did not return a row" }, { status: 400 });
+  }
+
   return NextResponse.json({
-    profile: normalizeOnboardingProfile(data as Record<string, unknown>),
+    profile: normalizeOnboardingProfile(row),
   });
 }

@@ -166,6 +166,7 @@ export type HousingOption = {
   type: string;
   cost: string;
   distance: string;
+  location?: string;
   acceptsFelony?: boolean;
   transitAccess: boolean;
   waitlistOpen: boolean;

@@ -1,10 +1,14 @@
 function sanitizeEnvValue(value: string | undefined): string | undefined {
   if (!value) return undefined;
-  const trimmed = value.trim().replace(/^['"]|['"]$/g, "");
-  if ([...trimmed].some((char) => char.charCodeAt(0) > 255)) {
-    return undefined;
-  }
-  return trimmed;
+  // Strip quotes, BOM/zero-width, and other non-ASCII corruption from paste.
+  const cleaned = [...value.trim()]
+    .filter((char) => {
+      const code = char.charCodeAt(0);
+      return code >= 32 && code <= 126;
+    })
+    .join("")
+    .replace(/^['"]|['"]$/g, "");
+  return cleaned || undefined;
 }
 
 export function getSupabaseEnv() {

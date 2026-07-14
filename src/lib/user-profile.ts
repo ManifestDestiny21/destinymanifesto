@@ -88,6 +88,25 @@ export type SeekerLocation = {
   label: string;
 };
 
+/** Cities treated as the same demo market when filtering local listings. */
+const MARKET_NEIGHBORS: Record<string, string[]> = {
+  clarksville: ["clarksville", "fort campbell", "oak grove", "hopkinsville"],
+  nashville: [
+    "nashville",
+    "antioch",
+    "madison",
+    "goodlettsville",
+    "hermitage",
+    "bellevue",
+    "brentwood",
+    "franklin",
+  ],
+  murfreesboro: ["murfreesboro", "smyrna", "la vergne"],
+  memphis: ["memphis", "bartlett", "germantown", "collierville"],
+  knoxville: ["knoxville", "farragut"],
+  chattanooga: ["chattanooga", "hixson", "east ridge"],
+};
+
 /** Prefer the seeker's profile location; fall back to Middle Tennessee demo market. */
 export function resolveSeekerLocation(
   profile: Pick<UserProfile, "city" | "state" | "zip_code"> | null | undefined
@@ -118,20 +137,54 @@ export function resolveSeekerLocation(
   };
 }
 
+function normalizePlace(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+export function marketCitiesFor(seeker: SeekerLocation): string[] {
+  const city = normalizePlace(seeker.city);
+  if (!city) return [];
+
+  for (const [hub, cities] of Object.entries(MARKET_NEIGHBORS)) {
+    if (city === hub || city.includes(hub) || cities.includes(city)) {
+      return cities;
+    }
+  }
+
+  return [city];
+}
+
+function isStatewideLocation(locationText: string): boolean {
+  const haystack = normalizePlace(locationText);
+  return (
+    haystack.includes("statewide") ||
+    haystack.includes("tennessee (statewide)") ||
+    haystack.startsWith("tennessee,") ||
+    haystack === "tennessee" ||
+    haystack.includes("online")
+  );
+}
+
+/** True when a listing is in the seeker's city or nearby market (not the whole state). */
 export function locationMatchesMarket(
   locationText: string | null | undefined,
   seeker: SeekerLocation
 ): boolean {
   if (!locationText) return false;
-  const haystack = locationText.toLowerCase();
-  const state = seeker.state.toLowerCase();
-  const city = seeker.city.toLowerCase();
+  const haystack = normalizePlace(locationText);
+  const cities = marketCitiesFor(seeker);
 
-  if (state && (haystack.includes(`, ${state}`) || haystack.endsWith(` ${state}`) || haystack.includes(` ${state} `))) {
-    return true;
-  }
-  if (city && haystack.includes(city)) return true;
-  return false;
+  return cities.some((city) => city && haystack.includes(city));
+}
+
+/** Statewide / online Tennessee supports that should still appear for TN seekers. */
+export function locationMatchesStatewide(
+  locationText: string | null | undefined,
+  seeker: SeekerLocation
+): boolean {
+  if (!locationText) return false;
+  if (seeker.state.toUpperCase() !== "TN") return false;
+  return isStatewideLocation(locationText);
 }
 
 export function prioritizeJobsForLocation<T extends { location: string }>(
@@ -140,7 +193,25 @@ export function prioritizeJobsForLocation<T extends { location: string }>(
 ): T[] {
   const local = jobs.filter((job) => locationMatchesMarket(job.location, seeker));
   if (local.length > 0) return local;
-  return jobs;
+
+  const statewide = jobs.filter((job) => locationMatchesStatewide(job.location, seeker));
+  if (statewide.length > 0) return statewide;
+
+  // Do not dump another city's listings (e.g. Nashville) when seeker is elsewhere.
+  return [];
+}
+
+export function filterLocalThenStatewide<T extends { location: string }>(
+  items: T[],
+  seeker: SeekerLocation
+): T[] {
+  const local = items.filter((item) => locationMatchesMarket(item.location, seeker));
+  const statewide = items.filter(
+    (item) =>
+      locationMatchesStatewide(item.location, seeker) &&
+      !locationMatchesMarket(item.location, seeker)
+  );
+  return [...local, ...statewide];
 }
 
 export type ProfileUpdatePayload = {
@@ -306,9 +377,6 @@ export function buildDatabaseProfileUpdate(
     updated_at: new Date().toISOString(),
   };
 
-  if (typeof onboardingData.onboarding_step === "number") {
-    update.onboarding_step = onboardingData.onboarding_step;
-  }
-
+  // Keep step inside onboarding_data only — avoid failing if onboarding_step column is missing
   return update;
 }
