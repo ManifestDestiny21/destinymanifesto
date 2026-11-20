@@ -148,13 +148,18 @@ export type LawArticle = {
   title: string;
   category: string;
   summary: string;
+  /** State code (e.g. TN, KY) or "US" for national */
+  state?: string;
 };
 
 export type Meeting = {
   id: string;
   title: string;
   type: string;
+  /** Human-readable when, e.g. "July 25, 10:00 AM" */
   date: string;
+  /** ISO start — used to hide past meetings automatically */
+  startsAt?: string;
   location: string;
   distance: string;
   online: boolean;

@@ -1,9 +1,13 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
-import { MESSAGES } from "@/lib/mock-data";
+import { recentMessagesForSeeker } from "@/lib/local-content";
+import { requireRole } from "@/lib/auth/guards";
 
-export default function MessagesPage() {
+export default async function MessagesPage() {
+  await requireRole("job_seeker");
+  const messages = recentMessagesForSeeker();
+
   return (
     <div>
       <PageHeader
@@ -17,7 +21,7 @@ export default function MessagesPage() {
         New message
       </Link>
       <div className="space-y-3">
-        {MESSAGES.map((m) => (
+        {messages.map((m) => (
           <Link key={m.id} href="/messages/compose">
             <Card className={m.unread ? "border-[#01696f]/30" : ""}>
               <div className="flex justify-between gap-2">

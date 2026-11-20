@@ -105,9 +105,74 @@ const MARKET_NEIGHBORS: Record<string, string[]> = {
   memphis: ["memphis", "bartlett", "germantown", "collierville"],
   knoxville: ["knoxville", "farragut"],
   chattanooga: ["chattanooga", "hixson", "east ridge"],
+  "bowling green": [
+    "bowling green",
+    "warren",
+    "oakland",
+    "smiths grove",
+    "plano",
+    "alvaton",
+  ],
+  lexington: ["lexington", "nicholasville", "georgetown", "versailles"],
+  louisville: ["louisville", "jeffersontown", "st. matthews", "shively"],
 };
 
-/** Prefer the seeker's profile location; fall back to Middle Tennessee demo market. */
+/** Full state names for statewide location matching (all US states + DC). */
+const STATE_NAMES: Record<string, string> = {
+  AL: "alabama",
+  AK: "alaska",
+  AZ: "arizona",
+  AR: "arkansas",
+  CA: "california",
+  CO: "colorado",
+  CT: "connecticut",
+  DE: "delaware",
+  DC: "district of columbia",
+  FL: "florida",
+  GA: "georgia",
+  HI: "hawaii",
+  ID: "idaho",
+  IL: "illinois",
+  IN: "indiana",
+  IA: "iowa",
+  KS: "kansas",
+  KY: "kentucky",
+  LA: "louisiana",
+  ME: "maine",
+  MD: "maryland",
+  MA: "massachusetts",
+  MI: "michigan",
+  MN: "minnesota",
+  MS: "mississippi",
+  MO: "missouri",
+  MT: "montana",
+  NE: "nebraska",
+  NV: "nevada",
+  NH: "new hampshire",
+  NJ: "new jersey",
+  NM: "new mexico",
+  NY: "new york",
+  NC: "north carolina",
+  ND: "north dakota",
+  OH: "ohio",
+  OK: "oklahoma",
+  OR: "oregon",
+  PA: "pennsylvania",
+  RI: "rhode island",
+  SC: "south carolina",
+  SD: "south dakota",
+  TN: "tennessee",
+  TX: "texas",
+  UT: "utah",
+  VT: "vermont",
+  VA: "virginia",
+  WA: "washington",
+  WV: "west virginia",
+  WI: "wisconsin",
+  WY: "wyoming",
+};
+
+/** Prefer the seeker's profile location; fall back to demo market only when unset. */
 export function resolveSeekerLocation(
   profile: Pick<UserProfile, "city" | "state" | "zip_code"> | null | undefined
 ): SeekerLocation {
@@ -116,16 +181,14 @@ export function resolveSeekerLocation(
   const zip = profile?.zip_code?.trim() || "";
 
   if (city || state) {
-    const resolvedCity = city || (state.toUpperCase() === "TN" ? "Nashville" : city);
-    const resolvedState = state || "TN";
+    const resolvedCity = city || "Your area";
+    const resolvedState = state.toUpperCase();
     const labelParts = [resolvedCity, resolvedState].filter(Boolean);
     return {
-      city: resolvedCity || "Nashville",
+      city: resolvedCity,
       state: resolvedState,
       zip,
-      label: zip
-        ? `${labelParts.join(", ")} ${zip}`
-        : labelParts.join(", "),
+      label: zip ? `${labelParts.join(", ")} ${zip}` : labelParts.join(", "),
     };
   }
 
@@ -154,14 +217,29 @@ export function marketCitiesFor(seeker: SeekerLocation): string[] {
   return [city];
 }
 
-function isStatewideLocation(locationText: string): boolean {
+function isStatewideLocation(locationText: string, stateCode: string): boolean {
   const haystack = normalizePlace(locationText);
+  const code = stateCode.toUpperCase();
+  const fullName = STATE_NAMES[code] ?? "";
+
+  // Shared online workshops/resources are available to any seeker.
+  if (haystack === "online" || haystack.startsWith("online ")) return true;
+
+  // Unknown state code: never treat another state's "statewide" listing as a match.
+  if (!fullName) return false;
+
+  const mentionsThisState =
+    haystack.includes(fullName) ||
+    haystack.includes(`, ${code.toLowerCase()}`) ||
+    haystack.endsWith(` ${code.toLowerCase()}`) ||
+    haystack.startsWith(`${code.toLowerCase()} `);
+
+  if (haystack.includes("statewide")) return mentionsThisState;
+
   return (
-    haystack.includes("statewide") ||
-    haystack.includes("tennessee (statewide)") ||
-    haystack.startsWith("tennessee,") ||
-    haystack === "tennessee" ||
-    haystack.includes("online")
+    haystack === `${fullName} (statewide)` ||
+    haystack === fullName ||
+    haystack.startsWith(`${fullName},`)
   );
 }
 
@@ -173,18 +251,30 @@ export function locationMatchesMarket(
   if (!locationText) return false;
   const haystack = normalizePlace(locationText);
   const cities = marketCitiesFor(seeker);
+  const stateCode = seeker.state.toUpperCase();
+  const stateName = STATE_NAMES[stateCode];
+
+  // Avoid matching another state's city with the same name (e.g. Springfield).
+  if (stateName && haystack.includes(",") && !haystack.includes(stateName) && !haystack.includes(`, ${stateCode.toLowerCase()}`)) {
+    // Still allow city-only strings without a state suffix.
+    const hasOtherState = Object.entries(STATE_NAMES).some(
+      ([code, name]) =>
+        code !== stateCode &&
+        (haystack.includes(`, ${code.toLowerCase()}`) || haystack.endsWith(` ${name}`) || haystack.includes(`, ${name}`))
+    );
+    if (hasOtherState) return false;
+  }
 
   return cities.some((city) => city && haystack.includes(city));
 }
 
-/** Statewide / online Tennessee supports that should still appear for TN seekers. */
+/** Statewide / online supports for the seeker's state (not another state's agencies). */
 export function locationMatchesStatewide(
   locationText: string | null | undefined,
   seeker: SeekerLocation
 ): boolean {
   if (!locationText) return false;
-  if (seeker.state.toUpperCase() !== "TN") return false;
-  return isStatewideLocation(locationText);
+  return isStatewideLocation(locationText, seeker.state);
 }
 
 export function prioritizeJobsForLocation<T extends { location: string }>(

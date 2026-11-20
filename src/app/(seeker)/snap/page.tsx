@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Disclaimer } from "@/components/ui/disclaimer";
 import { AiBadge } from "@/components/ui/ai-badge";
 import { requireRole } from "@/lib/auth/guards";
-import { snapResourcesForSeeker } from "@/lib/local-content";
+import { agencyLinksFor, snapResourcesForSeeker } from "@/lib/local-content";
 import { getJobSeekerProfile } from "@/lib/user-profile-server";
 import { normalizeOnboardingProfile, resolveSeekerLocation } from "@/lib/user-profile";
 
@@ -22,6 +22,7 @@ export default async function SnapPage() {
   const profile = profileRow ? normalizeOnboardingProfile(profileRow) : null;
   const seekerLocation = resolveSeekerLocation(profile);
   const snapResources = snapResourcesForSeeker(seekerLocation);
+  const agencies = agencyLinksFor(seekerLocation.state);
 
   return (
     <div>
@@ -37,9 +38,7 @@ export default async function SnapPage() {
           <strong>Your location:</strong> {seekerLocation.label}
         </p>
         <p className="mt-2 text-sm leading-relaxed text-[#7a7974]">
-          {seekerLocation.state.toUpperCase() === "TN"
-            ? "AI-generated: Tennessee DHS / One DHS handles SNAP applications. An interview may be required after you apply."
-            : `AI-generated: Check your state human services agency for SNAP applications in ${seekerLocation.state}. An interview may be required after you apply.`}
+          AI-generated: {agencies.snapBlurb}
         </p>
         <AiBadge className="mt-2" />
       </Card>

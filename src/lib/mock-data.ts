@@ -254,7 +254,7 @@ export const JOBS: Job[] = [
 ];
 
 export const SAVED_JOBS: SavedJob[] = [
-  { ...JOBS[0], applicationStatus: "applied", appliedDate: "May 20, 2026" },
+  { ...JOBS[0], applicationStatus: "applied", appliedDate: "Recently" },
   { ...JOBS[1], applicationStatus: "saved" },
 ];
 
@@ -336,6 +336,72 @@ export const RESOURCES: Resource[] = [
     link: "https://www.jobs4tn.gov",
     aiSummary: "AI-generated: Resume help, job leads, and training referrals for Clarksville seekers.",
   },
+  {
+    id: "r8",
+    name: "Kentucky CHFS — SNAP / food benefits",
+    category: "SNAP Benefits",
+    location: "Kentucky (statewide)",
+    distance: "Online / local office",
+    eligibility: "Income and household size based",
+    contact: "kynect or local DCBS office",
+    link: "https://www.chfs.ky.gov/agencies/dcbs/dfs/Pages/food.aspx",
+    aiSummary: "AI-generated: Apply for Kentucky SNAP through CHFS / kynect and manage your case online.",
+  },
+  {
+    id: "r9",
+    name: "Warren County SNAP / DCBS help",
+    category: "SNAP Benefits",
+    location: "Bowling Green, KY",
+    distance: "2.1 mi",
+    eligibility: "Income and household size based",
+    contact: "Local DCBS office / kynect",
+    link: "https://www.chfs.ky.gov/agencies/dcbs/dfs/Pages/food.aspx",
+    aiSummary: "AI-generated: Bowling Green–area SNAP applications, interviews, and case support for Warren County.",
+  },
+  {
+    id: "r10",
+    name: "Bowling Green reentry & housing navigation",
+    category: "Housing",
+    location: "Bowling Green, KY",
+    distance: "2.8 mi",
+    eligibility: "Returning citizens; program policies apply",
+    contact: "211 / local intake",
+    link: "https://www.211.org",
+    aiSummary: "AI-generated: Shelter, transitional housing, and rental help pathways near Bowling Green.",
+  },
+  {
+    id: "r11",
+    name: "GO bg Transit",
+    category: "Transportation",
+    location: "Bowling Green, KY",
+    distance: "1.4 mi",
+    eligibility: "General public; ask about reduced fare options",
+    contact: "GO bg customer service",
+    link: "https://www.bgky.org/gobg",
+    aiSummary: "AI-generated: Bus routes for interviews, work, and appointments in Bowling Green.",
+  },
+  {
+    id: "r12",
+    name: "Kentucky Career Center — Bowling Green",
+    category: "Local Incentives",
+    location: "Bowling Green, KY",
+    distance: "2.5 mi",
+    eligibility: "Job seekers; ask about reentry / fair-chance services",
+    contact: "Workforce front desk",
+    link: "https://kcc.ky.gov",
+    aiSummary: "AI-generated: Resume help, job leads, WIOA training, and employer connections for Bowling Green seekers.",
+  },
+  {
+    id: "r13",
+    name: "Kentucky Career Center (statewide)",
+    category: "Local Incentives",
+    location: "Kentucky (statewide)",
+    distance: "Online / local center",
+    eligibility: "Job seekers statewide",
+    contact: "Find a center near you",
+    link: "https://kcc.ky.gov",
+    aiSummary: "AI-generated: Statewide workforce services, training, and job search support in Kentucky.",
+  },
 ];
 
 export const MESSAGES: Message[] = [
@@ -374,33 +440,69 @@ export const LAW_ARTICLES: LawArticle[] = [
     title: "Rights after a felony conviction in Tennessee",
     category: "Rights after conviction",
     summary: "Educational overview of employment, housing, and voting considerations.",
+    state: "TN",
   },
   {
     id: "l2",
     title: "Understanding background checks for jobs",
     category: "Background checks",
     summary: "What employers may ask, timing of checks, and your right to accurate records.",
+    state: "US",
   },
   {
     id: "l3",
     title: "Expungement basics in Tennessee",
     category: "Expungement",
     summary: "General eligibility factors — not a substitute for legal advice.",
+    state: "TN",
   },
   {
     id: "l4",
     title: "Driver's license reinstatement",
     category: "Driver's license reinstatement",
     summary: "Steps, fees, and reinstatement programs that may apply in Tennessee.",
+    state: "TN",
+  },
+  {
+    id: "l5",
+    title: "Rights after a felony conviction in Kentucky",
+    category: "Rights after conviction",
+    summary: "Educational overview of employment, housing, and voting considerations in Kentucky.",
+    state: "KY",
+  },
+  {
+    id: "l6",
+    title: "Expungement basics in Kentucky",
+    category: "Expungement",
+    summary: "General eligibility factors for Kentucky — not a substitute for legal advice.",
+    state: "KY",
+  },
+  {
+    id: "l7",
+    title: "Driver's license reinstatement in Kentucky",
+    category: "Driver's license reinstatement",
+    summary: "Steps and programs that may apply for reinstating a Kentucky license.",
+    state: "KY",
+  },
+  {
+    id: "l8",
+    title: "Fair-chance hiring and Ban the Box basics",
+    category: "Employment restrictions",
+    summary: "How fair-chance policies work and what to expect when applying for work.",
+    state: "US",
   },
 ];
 
+/**
+ * Meetings use rolling offsets via local-content (startsAt).
+ * Static date strings below are fallbacks only; prefer startsAt when present.
+ */
 export const MEETINGS: Meeting[] = [
   {
     id: "e1",
     title: "Reentry Career Workshop",
     type: "Career workshop",
-    date: "May 28, 10:00 AM",
+    date: "Upcoming",
     location: "Nashville Career Advancement Center",
     distance: "2.4 mi",
     online: false,
@@ -409,7 +511,7 @@ export const MEETINGS: Meeting[] = [
     id: "e2",
     title: "Benefits & SNAP Info Session",
     type: "Benefits workshop",
-    date: "May 30, 2:00 PM",
+    date: "Upcoming",
     location: "Online",
     distance: "—",
     online: true,
@@ -418,7 +520,7 @@ export const MEETINGS: Meeting[] = [
     id: "e3",
     title: "Clarksville Reentry Career Workshop",
     type: "Career workshop",
-    date: "June 4, 10:00 AM",
+    date: "Upcoming",
     location: "American Job Center — Clarksville, TN",
     distance: "2.6 mi",
     online: false,
@@ -427,9 +529,27 @@ export const MEETINGS: Meeting[] = [
     id: "e4",
     title: "Montgomery County Benefits Info",
     type: "Benefits workshop",
-    date: "June 6, 1:00 PM",
+    date: "Upcoming",
     location: "Clarksville, TN",
     distance: "3.1 mi",
+    online: false,
+  },
+  {
+    id: "e5",
+    title: "Bowling Green Reentry Career Workshop",
+    type: "Career workshop",
+    date: "Upcoming",
+    location: "Kentucky Career Center — Bowling Green, KY",
+    distance: "2.3 mi",
+    online: false,
+  },
+  {
+    id: "e6",
+    title: "Warren County Benefits & SNAP Info",
+    type: "Benefits workshop",
+    date: "Upcoming",
+    location: "Bowling Green, KY",
+    distance: "2.0 mi",
     online: false,
   },
 ];
@@ -499,6 +619,38 @@ export const HOUSING: HousingOption[] = [
     transitAccess: true,
     waitlistOpen: true,
   },
+  {
+    id: "h7",
+    name: "Bowling Green transitional housing path",
+    type: "Transitional housing",
+    cost: "Sliding scale",
+    distance: "3.0 mi",
+    location: "Bowling Green, KY",
+    acceptsFelony: true,
+    transitAccess: true,
+    waitlistOpen: true,
+  },
+  {
+    id: "h8",
+    name: "Warren County sober living",
+    type: "Sober living",
+    cost: "$550–$700/mo",
+    distance: "4.2 mi",
+    location: "Bowling Green, KY",
+    acceptsFelony: true,
+    transitAccess: false,
+    waitlistOpen: true,
+  },
+  {
+    id: "h9",
+    name: "Bowling Green emergency shelter / 211",
+    type: "Shelter",
+    cost: "Free (short-term)",
+    distance: "2.1 mi",
+    location: "Bowling Green, KY",
+    transitAccess: true,
+    waitlistOpen: true,
+  },
 ];
 
 export const FELONY_RATING_LABELS: Record<number, string> = {
@@ -530,8 +682,8 @@ export const ONBOARDING_STEPS = [
 ];
 
 export const NEXT_STEPS = [
-  "Complete your profile — 28% remaining",
-  "Apply to Warehouse Associate (92% match)",
+  "Complete your profile for better local matches",
+  "Apply to a fair-chance job near you",
   "Upload ID for SNAP pre-screening checklist",
   "Review AI-generated cover letter draft",
 ];

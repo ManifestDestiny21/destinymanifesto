@@ -299,7 +299,7 @@ export function OnboardingFlow({ profile }: Props) {
             <input
               value={city}
               onChange={(e) => setCity(e.target.value)}
-              placeholder="City (e.g. Clarksville, Nashville)"
+              placeholder="City (e.g. Louisville, Memphis, your hometown)"
               className={inputClass}
             />
             <input

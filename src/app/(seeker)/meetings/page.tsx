@@ -16,9 +16,16 @@ export default async function MeetingsPage() {
     <div>
       <PageHeader
         title="AI Meetings & events"
-        subtitle={`Support groups, workshops, clinics, and mentorship near ${seekerLocation.label}.`}
+        subtitle={`Upcoming support groups, workshops, and mentorship near ${seekerLocation.label}. Past events are hidden automatically.`}
       />
-      <MeetingsList meetings={meetings} />
+      {meetings.length === 0 ? (
+        <p className="rounded-2xl border border-[#7a7974]/15 bg-[#fbfbf9] px-4 py-6 text-sm text-[#7a7974]">
+          No upcoming meetings listed near {seekerLocation.city} yet. Check your local workforce
+          center or call 211 for recovery and reentry groups in {seekerLocation.state}.
+        </p>
+      ) : (
+        <MeetingsList meetings={meetings} />
+      )}
     </div>
   );
 }

@@ -2,8 +2,10 @@ import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { JobCard } from "@/components/job-card";
 import { Card } from "@/components/ui/card";
+import { nextJobFair } from "@/lib/events";
 import { fetchLiveJobs } from "@/lib/jobs/fetch-jobs";
-import { DEMO_USER, MESSAGES, NEXT_STEPS } from "@/lib/mock-data";
+import { nextStepsForSeeker, recentMessagesForSeeker } from "@/lib/local-content";
+import { DEMO_USER } from "@/lib/mock-data";
 import { requireRole } from "@/lib/auth/guards";
 import { getJobSeekerProfile } from "@/lib/user-profile-server";
 import { calculateProfileCompletion, displayName, normalizeOnboardingProfile, resolveSeekerLocation } from "@/lib/user-profile";
@@ -33,6 +35,12 @@ export default async function SeekerDashboardPage() {
     user.id,
     topJobs.map((job) => job.id)
   );
+  const fair = nextJobFair(seekerLocation);
+  const nextSteps = nextStepsForSeeker(seekerLocation, {
+    completion,
+    topJobTitle: topJobs[0]?.title,
+  });
+  const recentMessages = recentMessagesForSeeker();
 
   return (
     <div>
@@ -83,7 +91,7 @@ export default async function SeekerDashboardPage() {
       <section className="mb-6">
         <h2 className="mb-3 font-semibold">Today&apos;s recommended next steps</h2>
         <ul className="space-y-2">
-          {NEXT_STEPS.map((step) => (
+          {nextSteps.map((step) => (
             <li
               key={step}
               className="rounded-xl border border-[#7a7974]/10 bg-[#fbfbf9] px-3 py-2 text-sm"
@@ -118,29 +126,35 @@ export default async function SeekerDashboardPage() {
         <Card>
           <h3 className="font-semibold">Upcoming job fair</h3>
           <p className="mt-1 text-sm text-[#7a7974]">
-            {seekerLocation.city} Reentry Hiring Fair — Jun 12
+            {fair
+              ? `${fair.title} — ${fair.shortDate}`
+              : `No upcoming fairs listed near ${seekerLocation.city} yet`}
           </p>
           <Link href="/job-fairs" className="mt-2 inline-block text-sm font-medium text-[#01696f]">
-            View details →
+            {fair ? "View details →" : "Check job fairs →"}
           </Link>
         </Card>
         <Card>
           <h3 className="font-semibold">Coaching check-in</h3>
-          <p className="mt-1 text-sm text-[#7a7974]">Weekly goals due Sunday</p>
+          <p className="mt-1 text-sm text-[#7a7974]">
+            Weekly goals for your plan near {seekerLocation.city}
+          </p>
           <Link href="/coach" className="mt-2 inline-block text-sm font-medium text-[#01696f]">
             Open coach →
           </Link>
         </Card>
         <Card>
           <h3 className="font-semibold">SNAP reminder</h3>
-          <p className="mt-1 text-sm text-[#7a7974]">Gather proof of income documents</p>
+          <p className="mt-1 text-sm text-[#7a7974]">
+            Gather proof of income documents for {seekerLocation.state} benefits
+          </p>
           <Link href="/snap" className="mt-2 inline-block text-sm font-medium text-[#01696f]">
             SNAP guide →
           </Link>
         </Card>
         <Card>
           <h3 className="font-semibold">Recent messages</h3>
-          <p className="mt-1 text-sm text-[#7a7974]">{MESSAGES[0].preview}</p>
+          <p className="mt-1 text-sm text-[#7a7974]">{recentMessages[0]?.preview ?? "No messages yet"}</p>
           <Link href="/messages" className="mt-2 inline-block text-sm font-medium text-[#01696f]">
             Open inbox →
           </Link>
