@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { enrichAndSaveJob } from "@/lib/jobs/persist-enrichment";
 import { getCompanyProfile, hasCompleteCompanyProfile } from "@/lib/employer/company-profile";
-import { createClient } from "@/lib/supabase/server";
+import { requireApiRole } from "@/lib/auth/api";
+import type { createClient } from "@/lib/supabase/server";
 
 type JobBody = {
   title?: string;
@@ -12,14 +13,9 @@ type JobBody = {
 };
 
 async function getOwnedJob(jobId: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
-  }
+  const auth = await requireApiRole("employer");
+  if ("error" in auth) return auth;
+  const { supabase, user } = auth;
 
   const { data: job, error } = await supabase
     .from("jobs")

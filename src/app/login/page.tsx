@@ -4,7 +4,7 @@ import { AuthForm } from "@/components/auth-form";
 import { BrandLogo } from "@/components/brand-logo";
 import { LegalFooter } from "@/components/legal-footer";
 import { createClient } from "@/lib/supabase/server";
-import { getHomePath, resolveUserRole } from "@/lib/auth/roles";
+import { getHomePath, getUserRole } from "@/lib/auth/roles";
 
 type Props = {
   searchParams: Promise<{ role?: string }>;
@@ -20,7 +20,7 @@ export default async function LoginPage({ searchParams }: Props) {
   } = await supabase.auth.getUser();
 
   if (user) {
-    const userRole = await resolveUserRole(supabase, user);
+    const userRole = getUserRole(user);
     if (userRole) {
       redirect(getHomePath(userRole));
     }

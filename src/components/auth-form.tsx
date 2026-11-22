@@ -5,7 +5,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import { useRouter } from "next/navigation";
 import {
   getHomePath,
-  resolveUserRole,
+  getUserRole,
   roleLabel,
   type UserRole,
 } from "@/lib/auth/roles";
@@ -67,7 +67,7 @@ export function AuthForm({ mode, role = "employer" }: Props) {
       }
 
       if (mode === "login" && result.data.user) {
-        const actualRole = await resolveUserRole(supabase, result.data.user);
+        const actualRole = getUserRole(result.data.user);
         if (actualRole && actualRole !== accountRole) {
           await supabase.auth.signOut();
           setError(

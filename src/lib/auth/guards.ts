@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   getHomePath,
   getLoginPath,
-  resolveUserRole,
+  getUserRole,
   type UserRole,
 } from "@/lib/auth/roles";
 
@@ -19,7 +19,7 @@ export async function requireAuth() {
     redirect("/");
   }
 
-  const role = await resolveUserRole(supabase, user);
+  const role = getUserRole(user);
   return { supabase, user, role };
 }
 
@@ -45,7 +45,7 @@ export async function redirectIfAuthenticated() {
 
   if (!user) return;
 
-  const role = await resolveUserRole(supabase, user);
+  const role = getUserRole(user);
   if (role) {
     redirect(getHomePath(role));
   }
@@ -59,7 +59,7 @@ export async function redirectWrongRoleLogin(expected: UserRole) {
 
   if (!user) return;
 
-  const role = await resolveUserRole(supabase, user);
+  const role = getUserRole(user);
   if (role && role !== expected) {
     redirect(getHomePath(role));
   }

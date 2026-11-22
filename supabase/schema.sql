@@ -1,4 +1,4 @@
--- Run this SQL in your Supabase SQL editor
+-- Run this SQL in your Supabase SQL editor, then run security-hardening.sql
 
 create table if not exists public.company_profiles (
   id uuid primary key default gen_random_uuid(),

@@ -1,19 +1,10 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { requireApiRole } from "@/lib/auth/api";
 import { fetchSavedJobsForUser, isPersistableJobId } from "@/lib/job-applications";
 import type { ApplicationStatus } from "@/lib/types";
 
-async function getAuthenticatedUser() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
-  }
-
-  return { supabase, user };
+function getAuthenticatedUser() {
+  return requireApiRole("job_seeker");
 }
 
 export async function GET(request: Request) {

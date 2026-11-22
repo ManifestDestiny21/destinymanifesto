@@ -19,6 +19,13 @@ const HEARD_ABOUT_OPTIONS = [
 const CONTACT_CONSENT_TEXT =
   "By submitting the form with this box checked, you confirm that you are the primary user and subscriber to the telephone number provided, and you agree to receive calls (including using artificial or prerecorded voice), texts, and WhatsApp messages from Destiny Manifesto and employers who use Destiny Manifesto at the telephone number provided above.";
 
+const MAX_RESUME_BYTES = 5 * 1024 * 1024;
+const RESUME_TYPES: Record<string, string> = {
+  pdf: "application/pdf",
+  doc: "application/msword",
+  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+};
+
 const inputClass =
   "w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-[#1570ef] focus:outline-none focus:ring-1 focus:ring-[#1570ef]";
 const labelClass = "mb-1 block text-sm font-medium text-slate-700";
@@ -54,20 +61,27 @@ export function UserAccountForm() {
   async function uploadResume(userId: string): Promise<string | null> {
     if (!resumeFile) return null;
 
-    const ext = resumeFile.name.split(".").pop() ?? "pdf";
+    const ext = resumeFile.name.split(".").pop()?.toLowerCase() ?? "";
+    const contentType = RESUME_TYPES[ext];
+    if (!contentType || resumeFile.size > MAX_RESUME_BYTES) {
+      console.warn("Resume upload skipped: unsupported type or too large.");
+      return null;
+    }
+
+    // Stored in a private bucket under the user's own folder. We save the storage
+    // path (not a public URL); read access goes through short-lived signed URLs.
     const path = `${userId}/resume.${ext}`;
 
     const { error: uploadError } = await supabase.storage
       .from("resumes")
-      .upload(path, resumeFile, { upsert: true });
+      .upload(path, resumeFile, { upsert: true, contentType });
 
     if (uploadError) {
       console.warn("Resume upload skipped:", uploadError.message);
       return null;
     }
 
-    const { data } = supabase.storage.from("resumes").getPublicUrl(path);
-    return data.publicUrl;
+    return path;
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -126,9 +140,9 @@ export function UserAccountForm() {
         return;
       }
 
-      let resumeUrl: string | null = null;
+      let resumePath: string | null = null;
       if (resumeFile) {
-        resumeUrl = await uploadResume(userId);
+        resumePath = await uploadResume(userId);
       }
 
       const profileRes = await fetch("/api/user-profile", {
@@ -148,7 +162,7 @@ export function UserAccountForm() {
           county: county || null,
           state: state || null,
           zip_code: zipCode || null,
-          resume_url: resumeUrl,
+          resume_url: resumePath,
           heard_about_us: heardAboutUs || null,
         }),
       });
