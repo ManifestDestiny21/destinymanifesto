@@ -1,5 +1,4 @@
 import type { User } from "@supabase/supabase-js";
-import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type UserRole = "employer" | "job_seeker";
 
@@ -27,10 +26,15 @@ export const SEEKER_PATHS = [
   "/book",
 ] as const;
 
-export function roleFromMetadata(user: User): UserRole | null {
-  const raw = user.user_metadata?.role ?? user.app_metadata?.role;
+/**
+ * The role lives in `app_metadata`, which only the server (service role / DB trigger)
+ * can write. Never read it from `user_metadata` — users can edit that themselves via
+ * `supabase.auth.updateUser()`.
+ */
+export function getUserRole(user: User): UserRole | null {
+  const raw = user.app_metadata?.role;
   if (raw === "employer") return "employer";
-  if (raw === "job_seeker" || raw === "job-seeker") return "job_seeker";
+  if (raw === "job_seeker") return "job_seeker";
   return null;
 }
 
@@ -68,22 +72,4 @@ export function isProtectedPath(pathname: string): boolean {
 
 export function roleLabel(role: UserRole): string {
   return role === "employer" ? "employer" : "job seeker";
-}
-
-export async function resolveUserRole(
-  supabase: SupabaseClient,
-  user: User
-): Promise<UserRole | null> {
-  const fromMetadata = roleFromMetadata(user);
-  if (fromMetadata) return fromMetadata;
-
-  const [{ data: seekerProfile }, { data: employerProfile }] = await Promise.all([
-    supabase.from("user_profiles").select("id").eq("user_id", user.id).maybeSingle(),
-    supabase.from("company_profiles").select("id").eq("user_id", user.id).maybeSingle(),
-  ]);
-
-  if (seekerProfile && employerProfile) return null;
-  if (seekerProfile) return "job_seeker";
-  if (employerProfile) return "employer";
-  return null;
 }

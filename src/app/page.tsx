@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { WelcomeScreen } from "@/components/welcome-screen";
 import { createClient } from "@/lib/supabase/server";
-import { getHomePath, resolveUserRole } from "@/lib/auth/roles";
+import { getHomePath, getUserRole } from "@/lib/auth/roles";
 
 export default async function HomePage() {
   try {
@@ -11,7 +11,7 @@ export default async function HomePage() {
     } = await supabase.auth.getUser();
 
     if (user) {
-      const role = await resolveUserRole(supabase, user);
+      const role = getUserRole(user);
       if (role) {
         redirect(getHomePath(role));
       }

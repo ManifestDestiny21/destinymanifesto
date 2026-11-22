@@ -1,17 +1,12 @@
 import { NextResponse } from "next/server";
 import { enrichAndSaveJob } from "@/lib/jobs/persist-enrichment";
 import { getCompanyProfile, hasCompleteCompanyProfile } from "@/lib/employer/company-profile";
-import { createClient } from "@/lib/supabase/server";
+import { requireApiRole } from "@/lib/auth/api";
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await requireApiRole("employer");
+  if ("error" in auth) return auth.error;
+  const { supabase, user } = auth;
 
   const company = await getCompanyProfile(supabase, user.id);
   if (!hasCompleteCompanyProfile(company)) {

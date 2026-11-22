@@ -5,7 +5,7 @@ import {
   isEmployerPath,
   isProtectedPath,
   isSeekerPath,
-  resolveUserRole,
+  getUserRole,
 } from "@/lib/auth/roles";
 
 export async function updateSession(request: NextRequest) {
@@ -48,7 +48,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (user && isProtectedPath(pathname)) {
-    const role = await resolveUserRole(supabase, user);
+    const role = getUserRole(user);
 
     if (role === "employer" && isSeekerPath(pathname)) {
       const url = request.nextUrl.clone();
