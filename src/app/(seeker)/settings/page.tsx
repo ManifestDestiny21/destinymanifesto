@@ -16,7 +16,7 @@ export default async function SettingsPage() {
         <PageHeader title="Settings" subtitle="You control what you share." />
         <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           {error ?? "Could not load your profile."} Run{" "}
-          <code className="text-xs">supabase/fix-onboarding.sql</code> in Supabase, then{" "}
+          the database migrations (<code className="text-xs">supabase/README.md</code>), then{" "}
           <Link href="/settings" className="font-medium underline">
             try again
           </Link>

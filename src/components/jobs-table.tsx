@@ -41,7 +41,17 @@ export function JobsTable({ jobs, canPostJobs = true }: Props) {
         <tbody>
           {jobs.map((job) => (
             <tr key={job.id} className="border-b border-slate-100">
-              <td className="px-4 py-3 font-medium">{job.title}</td>
+              <td className="px-4 py-3 font-medium">
+                {job.title}
+                {job.hidden ? (
+                  <span
+                    className="ml-2 rounded bg-red-100 px-1.5 py-0.5 text-xs font-semibold text-red-800"
+                    title={job.hidden_reason ?? undefined}
+                  >
+                    Hidden
+                  </span>
+                ) : null}
+              </td>
               <td className="px-4 py-3">{job.location}</td>
               <td className="px-4 py-3">{job.salary_range ?? "—"}</td>
               <td className="px-4 py-3">{job.felon_friendly ? "Yes" : "No"}</td>

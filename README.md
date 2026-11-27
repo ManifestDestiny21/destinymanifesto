@@ -30,14 +30,12 @@ cp .env.example .env.local
 
 ## 3) Create database tables + RLS
 
-Open Supabase SQL Editor and run:
+Apply the migrations in `supabase/migrations/` — see [supabase/README.md](supabase/README.md)
+for the Supabase CLI steps (or paste each file into the SQL Editor in order).
 
-- `supabase/schema.sql`
-
-This creates:
-- `company_profiles`
-- `jobs`
-- Row Level Security policies so employers only access their own records
+This creates the tables, Row Level Security policies, server-controlled roles,
+rate limits, and employer approval / job reporting. Afterwards, make your own
+account an admin (instructions in `supabase/README.md`) to use `/admin`.
 
 ## 4) Configure Supabase Auth
 

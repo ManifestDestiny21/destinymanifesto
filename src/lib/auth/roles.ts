@@ -38,6 +38,11 @@ export function getUserRole(user: User): UserRole | null {
   return null;
 }
 
+/** Admin flag lives in app_metadata, which only SQL / the service role can set. */
+export function isAdmin(user: User): boolean {
+  return user.app_metadata?.is_admin === true;
+}
+
 export function getHomePath(role: UserRole): string {
   return role === "employer" ? "/employer/dashboard" : "/dashboard";
 }

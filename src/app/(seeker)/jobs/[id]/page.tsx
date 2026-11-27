@@ -2,12 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FelonyRating } from "@/components/felony-rating";
 import { JobActions } from "@/components/job-actions";
+import { ReportJobButton } from "@/components/report-job-button";
 import { AiBadge } from "@/components/ui/ai-badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Disclaimer } from "@/components/ui/disclaimer";
 import { requireRole } from "@/lib/auth/guards";
-import { fetchApplicationStatusMap } from "@/lib/job-applications";
+import { fetchApplicationStatusMap, isPersistableJobId } from "@/lib/job-applications";
 import { fetchLiveJobById } from "@/lib/jobs/fetch-jobs";
 import { getJobSeekerProfile } from "@/lib/user-profile-server";
 import { normalizeOnboardingProfile, resolveSeekerLocation } from "@/lib/user-profile";
@@ -58,6 +59,11 @@ export default async function JobDetailPage({
         you&apos;ve had an interview and a written offer. If a listing asks for that, don&apos;t
         send anything.
       </Disclaimer>
+      {source === "supabase" && isPersistableJobId(job.id) ? (
+        <div className="mt-2">
+          <ReportJobButton jobId={job.id} />
+        </div>
+      ) : null}
       <Card className="mt-4">
         <h2 className="font-semibold">Why this match?</h2>
         <ul className="mt-2 space-y-2 text-sm">

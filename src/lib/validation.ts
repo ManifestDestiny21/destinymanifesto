@@ -104,6 +104,21 @@ export const jobApplicationSchema = z.object({
   note: optionalText(2_000),
 });
 
+export const JOB_REPORT_REASONS = [
+  "scam",
+  "asks_for_money",
+  "personal_info",
+  "offensive",
+  "misleading",
+  "other",
+] as const;
+
+export const jobReportSchema = z.object({
+  job_id: z.string().regex(UUID_RE),
+  reason: z.enum(JOB_REPORT_REASONS),
+  details: optionalText(2_000),
+});
+
 /** A resume path must live in the caller's own folder: "<userId>/resume.<ext>". */
 export function isOwnResumePath(path: string, userId: string): boolean {
   return new RegExp(`^${userId}/resume\\.(pdf|docx?)$`).test(path);
