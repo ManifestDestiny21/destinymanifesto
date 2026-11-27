@@ -161,12 +161,15 @@ Rating guide: 0=less likely felony-friendly, 5=higher probability. This is an es
       body: JSON.stringify({
         model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
         temperature: 0.3,
+        max_tokens: 600,
         messages: [
           { role: "system", content: system },
           { role: "user", content: user },
         ],
         response_format: { type: "json_object" },
       }),
+      // Don't let a slow upstream hang the request; we fall back to heuristics.
+      signal: AbortSignal.timeout(20_000),
     });
 
     if (!res.ok) return null;

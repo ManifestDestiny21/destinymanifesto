@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireApiRole } from "@/lib/auth/api";
+import { enforceRateLimit } from "@/lib/rate-limit";
+import { serverError } from "@/lib/api-errors";
+import { jobApplicationSchema, parseJsonBody } from "@/lib/validation";
 import { fetchSavedJobsForUser, isPersistableJobId } from "@/lib/job-applications";
 import type { ApplicationStatus } from "@/lib/types";
 
@@ -16,7 +19,7 @@ export async function GET(request: Request) {
   const jobIdsParam = searchParams.get("job_ids");
 
   if (jobIdsParam) {
-    const jobIds = jobIdsParam.split(",").filter(Boolean);
+    const jobIds = jobIdsParam.split(",").filter(Boolean).slice(0, 200);
     const persistableIds = jobIds.filter(isPersistableJobId);
 
     if (!persistableIds.length) {
@@ -30,7 +33,7 @@ export async function GET(request: Request) {
       .in("job_id", persistableIds);
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      return serverError("job applications", error);
     }
 
     const statuses: Record<string, ApplicationStatus> = {};
@@ -55,21 +58,16 @@ export async function POST(request: Request) {
   if ("error" in auth) return auth.error;
 
   const { supabase, user } = auth;
-  const body = await request.json();
-  const jobId = body.job_id as string | undefined;
-  const action = body.action as "save" | "apply" | undefined;
-  const note = (body.note as string | undefined)?.trim() || null;
-
-  if (!jobId || !isPersistableJobId(jobId)) {
+  const limited = await enforceRateLimit(supabase, "job-applications:write");
+  if (limited) return limited;
+  const parsed = await parseJsonBody(request, jobApplicationSchema);
+  if ("error" in parsed) {
     return NextResponse.json(
       { error: "This job cannot be saved or applied to yet. Try a live employer listing." },
       { status: 400 }
     );
   }
-
-  if (action !== "save" && action !== "apply") {
-    return NextResponse.json({ error: "Invalid action" }, { status: 400 });
-  }
+  const { job_id: jobId, action, note } = parsed.data;
 
   const { data: job, error: jobError } = await supabase
     .from("jobs")
@@ -110,7 +108,7 @@ export async function POST(request: Request) {
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      return serverError("job applications", error);
     }
 
     return NextResponse.json({ application: data, status: "saved" as ApplicationStatus });
@@ -135,7 +133,7 @@ export async function POST(request: Request) {
     : await supabase.from("job_applications").insert(payload).select("*").single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return serverError("job applications", error);
   }
 
   return NextResponse.json({ application: data, status: "applied" as ApplicationStatus });
@@ -146,6 +144,8 @@ export async function DELETE(request: Request) {
   if ("error" in auth) return auth.error;
 
   const { supabase, user } = auth;
+  const limited = await enforceRateLimit(supabase, "job-applications:write");
+  if (limited) return limited;
   const { searchParams } = new URL(request.url);
   const jobId = searchParams.get("job_id");
 
@@ -178,7 +178,7 @@ export async function DELETE(request: Request) {
     .eq("job_id", jobId);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return serverError("job applications", error);
   }
 
   return NextResponse.json({ success: true });

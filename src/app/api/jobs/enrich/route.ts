@@ -1,15 +1,7 @@
-import { createHash, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
+import { isBearerAuthorized } from "@/lib/auth/bearer";
 import { enrichAndSaveJob } from "@/lib/jobs/persist-enrichment";
 import { createAdminClient } from "@/lib/supabase/admin";
-
-function isAuthorized(header: string | null, secret: string): boolean {
-  if (!header) return false;
-  // Hash both sides so lengths match and comparison is constant-time.
-  const given = createHash("sha256").update(header).digest();
-  const expected = createHash("sha256").update(`Bearer ${secret}`).digest();
-  return timingSafeEqual(given, expected);
-}
 
 /** Backfill AI fields for jobs missing ai_summary. Requires SUPABASE_SERVICE_ROLE_KEY and JOB_ENRICH_SECRET. */
 export async function POST(request: Request) {
@@ -18,7 +10,7 @@ export async function POST(request: Request) {
   if (!secret) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-  if (!isAuthorized(request.headers.get("authorization"), secret)) {
+  if (!isBearerAuthorized(request.headers.get("authorization"), secret)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

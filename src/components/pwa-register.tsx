@@ -1,18 +1,38 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 };
 
+const noopSubscribe = () => () => {};
+
+function detectStandalone(): boolean {
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    // iOS Safari
+    Boolean((navigator as Navigator & { standalone?: boolean }).standalone)
+  );
+}
+
+function detectIosSafari(): boolean {
+  const ua = window.navigator.userAgent.toLowerCase();
+  const isIos = /iphone|ipad|ipod/.test(ua);
+  const isSafari = /safari/.test(ua) && !/crios|fxios|edgios/.test(ua);
+  return isIos && isSafari;
+}
+
 export function PwaRegister() {
   const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(
     null
   );
-  const [showIosHint, setShowIosHint] = useState(false);
+  const isStandalone = useSyncExternalStore(noopSubscribe, detectStandalone, () => false);
+  const isIosSafari = useSyncExternalStore(noopSubscribe, detectIosSafari, () => false);
+  const [iosHintDismissed, setIosHintDismissed] = useState(false);
   const [installed, setInstalled] = useState(false);
+  const showIosHint = isIosSafari && !iosHintDismissed;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -23,22 +43,7 @@ export function PwaRegister() {
       });
     }
 
-    const isStandalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      // iOS Safari
-      Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
-
-    if (isStandalone) {
-      setInstalled(true);
-      return;
-    }
-
-    const ua = window.navigator.userAgent.toLowerCase();
-    const isIos = /iphone|ipad|ipod/.test(ua);
-    const isSafari = /safari/.test(ua) && !/crios|fxios|edgios/.test(ua);
-    if (isIos && isSafari) {
-      setShowIosHint(true);
-    }
+    if (detectStandalone()) return;
 
     const onBeforeInstall = (event: Event) => {
       event.preventDefault();
@@ -59,7 +64,7 @@ export function PwaRegister() {
     }
   }
 
-  if (installed) return null;
+  if (installed || isStandalone) return null;
 
   if (installEvent) {
     return (
@@ -89,7 +94,7 @@ export function PwaRegister() {
         </p>
         <button
           type="button"
-          onClick={() => setShowIosHint(false)}
+          onClick={() => setIosHintDismissed(true)}
           className="mt-3 w-full rounded-xl border px-4 py-2 text-sm font-medium"
         >
           Got it
