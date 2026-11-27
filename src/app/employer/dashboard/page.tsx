@@ -20,7 +20,8 @@ export default async function EmployerDashboardPage() {
     .order("created_at", { ascending: false });
 
   if (error) {
-    throw new Error(error.message);
+    console.error("[employer dashboard] load jobs:", error.message);
+    throw new Error("Could not load your jobs.");
   }
 
   return (
@@ -52,6 +53,22 @@ export default async function EmployerDashboardPage() {
           <LogoutButton />
         </div>
       </header>
+
+      {canPostJobs && company?.approval_status === "pending" ? (
+        <div className="mb-6 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+          <strong>Your company is being reviewed.</strong> You can post jobs now; they&apos;ll
+          become visible to job seekers once your account is approved. This helps keep job
+          seekers safe from fake listings.
+        </div>
+      ) : null}
+
+      {company?.approval_status === "rejected" ? (
+        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
+          <strong>Your company wasn&apos;t approved,</strong> so your listings aren&apos;t shown
+          to job seekers. Update your company profile with a website and description, or
+          contact support to ask for another review.
+        </div>
+      ) : null}
 
       {!canPostJobs ? (
         <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">

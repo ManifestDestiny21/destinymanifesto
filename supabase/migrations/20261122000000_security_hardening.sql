@@ -1,5 +1,4 @@
--- Security hardening. Run the whole file once in the Supabase SQL Editor
--- AFTER schema.sql (and fix-onboarding.sql if you use it). Safe to re-run.
+-- Security hardening. Safe to re-run. See supabase/README.md for how to apply.
 --
 -- What it does:
 --   1. Makes the account role server-controlled (auth.users.raw_app_meta_data),

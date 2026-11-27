@@ -1,12 +1,13 @@
 import type { User } from "@supabase/supabase-js";
 import { describe, expect, it } from "vitest";
 import { isBearerAuthorized } from "@/lib/auth/bearer";
-import { getUserRole } from "@/lib/auth/roles";
+import { getUserRole, isAdmin } from "@/lib/auth/roles";
 import { safeRedirectPath } from "@/lib/auth/safe-redirect";
 import {
   companyProfileSchema,
   isOwnResumePath,
   jobApplicationSchema,
+  jobReportSchema,
   jobSchema,
   parseJsonBody,
 } from "@/lib/validation";
@@ -29,6 +30,26 @@ describe("role resolution", () => {
 
   it("rejects unknown roles", () => {
     expect(getUserRole(userWith({ app: { role: "admin" } }))).toBeNull();
+  });
+});
+
+describe("admin flag", () => {
+  it("only trusts app_metadata.is_admin === true", () => {
+    expect(isAdmin(userWith({ app: { is_admin: true } }))).toBe(true);
+    expect(isAdmin(userWith({ app: { is_admin: "true" } }))).toBe(false);
+    expect(isAdmin(userWith({ user: { is_admin: true } }))).toBe(false);
+    expect(isAdmin(userWith({}))).toBe(false);
+  });
+});
+
+describe("job reports", () => {
+  const job_id = "11111111-2222-4333-8444-555555555555";
+  it("accepts a known reason and caps details", () => {
+    expect(jobReportSchema.safeParse({ job_id, reason: "scam" }).success).toBe(true);
+    expect(jobReportSchema.safeParse({ job_id, reason: "spam" }).success).toBe(false);
+    expect(
+      jobReportSchema.safeParse({ job_id, reason: "other", details: "x".repeat(2001) }).success
+    ).toBe(false);
   });
 });
 

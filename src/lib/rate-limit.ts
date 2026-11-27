@@ -12,13 +12,14 @@ export const RATE_LIMITS = {
   "user-profile:create": { limit: 10, windowSeconds: 3600 },
   "user-profile:update": { limit: 240, windowSeconds: 3600 },
   "job-applications:write": { limit: 120, windowSeconds: 3600 },
+  "job-reports:create": { limit: 20, windowSeconds: 3600 },
 } as const;
 
 export type RateLimitAction = keyof typeof RATE_LIMITS;
 
 /**
  * Returns a 429 response if the signed-in user is over the limit for `action`,
- * otherwise null. Counters live in Postgres (see supabase/rate-limits.sql), so
+ * otherwise null. Counters live in Postgres (see supabase/migrations/*_rate_limits.sql), so
  * limits hold across serverless instances.
  *
  * Fails open: if the limiter itself errors (e.g. migration not applied yet), the

@@ -17,9 +17,8 @@ function OnboardingSetupError({ detail }: { detail?: string }) {
         </p>
       ) : null}
       <p className="mt-4 text-sm text-[#7a7974]">
-        Open Supabase → SQL Editor → run the file{" "}
-        <code className="text-xs">supabase/fix-onboarding.sql</code> in this project, then refresh
-        this page.
+        Apply the database migrations (see{" "}
+        <code className="text-xs">supabase/README.md</code>), then refresh this page.
       </p>
       <div className="mt-6 flex gap-3">
         <Link

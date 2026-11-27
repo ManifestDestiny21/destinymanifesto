@@ -2,6 +2,10 @@ import { jobsForSeeker } from "@/lib/local-content";
 import type { DbJobRow } from "@/lib/jobs/db-types";
 import { mapDbJobToDisplay } from "@/lib/jobs/map-to-display";
 import { createAdminClient } from "@/lib/supabase/admin";
+
+// Reads go through the `seeker_visible_jobs` view (supabase/migrations/*_trust_safety.sql), which
+// excludes hidden listings and employers that haven't been approved. The service role
+// bypasses RLS, so this view is what keeps those listings out of the feed.
 import type { Job } from "@/lib/types";
 import {
   locationMatchesMarket,
@@ -32,7 +36,7 @@ export async function fetchLiveJobs(seekerLocation?: SeekerLocation | null): Pro
   }
 
   const { data: jobRows, error } = await admin
-    .from("jobs")
+    .from("seeker_visible_jobs")
     .select(
       `
       id,
@@ -114,7 +118,7 @@ export async function fetchLiveJobById(
   const admin = createAdminClient();
   if (admin) {
     const { data: row } = await admin
-      .from("jobs")
+      .from("seeker_visible_jobs")
       .select(
         `
         id,

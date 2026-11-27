@@ -6,6 +6,8 @@ export type CompanyProfile = {
   location: string | null;
   description: string | null;
   felon_friendly: boolean;
+  approval_status?: "pending" | "approved" | "rejected";
+  reviewed_at?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -28,6 +30,8 @@ export type DbJob = {
   ai_tags: string[] | null;
   felony_friendly_rating: number | null;
   ai_enriched_at: string | null;
+  hidden?: boolean;
+  hidden_reason?: string | null;
   created_at: string;
 };
 

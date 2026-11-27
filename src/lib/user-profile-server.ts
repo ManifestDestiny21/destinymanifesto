@@ -62,6 +62,6 @@ export async function bootstrapJobSeekerProfile(
     profile: null,
     error:
       attempts.join(" | ") ||
-      "Could not create your profile row. Run supabase/fix-onboarding.sql in Supabase SQL Editor.",
+      "Could not create your profile row. Apply the database migrations (see supabase/README.md).",
   };
 }

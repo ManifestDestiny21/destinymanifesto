@@ -1,5 +1,4 @@
--- Per-user API rate limits. Run once in the Supabase SQL Editor after
--- security-hardening.sql. Safe to re-run.
+-- Per-user API rate limits. Safe to re-run. See supabase/README.md for how to apply.
 --
 -- Counters are keyed to the caller's own user id (taken from auth.uid(), not
 -- from the request), so one user can never use up another user's allowance.

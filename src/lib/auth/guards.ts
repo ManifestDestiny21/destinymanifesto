@@ -1,11 +1,12 @@
 import "server-only";
 
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
   getHomePath,
   getLoginPath,
   getUserRole,
+  isAdmin,
   type UserRole,
 } from "@/lib/auth/roles";
 
@@ -63,6 +64,20 @@ export async function redirectWrongRoleLogin(expected: UserRole) {
   if (role && role !== expected) {
     redirect(getHomePath(role));
   }
+}
+
+/** Admin-only pages. Non-admins get a 404 so the page's existence isn't revealed. */
+export async function requireAdmin() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user || !isAdmin(user)) {
+    notFound();
+  }
+
+  return { supabase, user };
 }
 
 export function redirectToLogin(role: UserRole) {
