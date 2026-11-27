@@ -70,7 +70,9 @@ export function OnboardingFlow({ profile }: Props) {
     stepValues,
   });
 
-  latestRef.current = { preferredName, city, state, zip, radius, stepValues };
+  useEffect(() => {
+    latestRef.current = { preferredName, city, state, zip, radius, stepValues };
+  });
 
   const safeStep = Math.min(Math.max(step, 0), ONBOARDING_STEPS.length - 1);
   const current = ONBOARDING_STEPS[safeStep];

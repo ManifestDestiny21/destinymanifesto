@@ -93,8 +93,8 @@ export function UserAccountForm() {
       return;
     }
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
       return;
     }
 
@@ -269,7 +269,7 @@ export function UserAccountForm() {
                   id="password"
                   type="password"
                   required
-                  minLength={6}
+                  minLength={8}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className={inputClass}
@@ -284,7 +284,7 @@ export function UserAccountForm() {
                   id="confirmPassword"
                   type="password"
                   required
-                  minLength={6}
+                  minLength={8}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className={inputClass}

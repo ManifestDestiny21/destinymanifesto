@@ -5,6 +5,7 @@ import { JobActions } from "@/components/job-actions";
 import { AiBadge } from "@/components/ui/ai-badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Disclaimer } from "@/components/ui/disclaimer";
 import { requireRole } from "@/lib/auth/guards";
 import { fetchApplicationStatusMap } from "@/lib/job-applications";
 import { fetchLiveJobById } from "@/lib/jobs/fetch-jobs";
@@ -51,6 +52,12 @@ export default async function JobDetailPage({
         <p className="mt-4 text-sm whitespace-pre-wrap">{job.description}</p>
         <p className="mt-4 text-xs text-[#7a7974]">Source: {job.source}</p>
       </Card>
+      <Disclaimer variant="legal" className="mt-4">
+        <strong>Stay safe:</strong> Real employers will never ask you to pay a fee, buy
+        equipment, or share your bank login, card number, or Social Security number before
+        you&apos;ve had an interview and a written offer. If a listing asks for that, don&apos;t
+        send anything.
+      </Disclaimer>
       <Card className="mt-4">
         <h2 className="font-semibold">Why this match?</h2>
         <ul className="mt-2 space-y-2 text-sm">

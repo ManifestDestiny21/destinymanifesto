@@ -111,11 +111,11 @@ export function AuthForm({ mode, role = "employer" }: Props) {
           <input
             type="password"
             required
-            minLength={6}
+            minLength={mode === "signup" ? 8 : undefined}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full rounded-md border border-slate-300 px-3 py-2"
-            placeholder="Minimum 6 characters"
+            placeholder={mode === "signup" ? "Minimum 8 characters" : undefined}
           />
         </div>
 

@@ -1,15 +1,18 @@
 import { NextResponse } from "next/server";
 import { enrichAndSaveJob } from "@/lib/jobs/persist-enrichment";
-import { getCompanyProfile, hasCompleteCompanyProfile } from "@/lib/employer/company-profile";
+import { getCompanyProfile } from "@/lib/employer/company-profile";
 import { requireApiRole } from "@/lib/auth/api";
+import { enforceRateLimit } from "@/lib/rate-limit";
+import { serverError } from "@/lib/api-errors";
+import { jobSchema, parseJsonBody } from "@/lib/validation";
 import type { createClient } from "@/lib/supabase/server";
 
 type JobBody = {
-  title?: string;
-  location?: string;
-  salaryRange?: string;
-  description?: string;
-  felonFriendly?: boolean;
+  title: string;
+  location: string;
+  salaryRange: string | null;
+  description: string;
+  felonFriendly: boolean;
 };
 
 async function getOwnedJob(jobId: string) {
@@ -25,7 +28,7 @@ async function getOwnedJob(jobId: string) {
     .maybeSingle();
 
   if (error) {
-    return { error: NextResponse.json({ error: error.message }, { status: 400 }) };
+    return { error: serverError("load job", error) };
   }
 
   if (!job) {
@@ -39,18 +42,16 @@ async function enrichJobListing(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
   jobId: string,
-  body: Required<Pick<JobBody, "title" | "location" | "description" | "felonFriendly">> & {
-    salaryRange?: string;
-  }
+  body: JobBody
 ) {
   const company = await getCompanyProfile(supabase, userId);
 
   return enrichAndSaveJob(jobId, {
     title: body.title,
     location: body.location,
-    salary_range: body.salaryRange || null,
+    salary_range: body.salaryRange,
     description: body.description,
-    felon_friendly: Boolean(body.felonFriendly),
+    felon_friendly: body.felonFriendly,
     company_name: company?.company_name ?? null,
     company_felon_friendly: company?.felon_friendly ?? false,
   });
@@ -65,39 +66,34 @@ export async function PATCH(
   if ("error" in result) return result.error;
 
   const { supabase, user, job } = result;
-  const body = (await request.json()) as JobBody;
-
-  if (!body.title?.trim() || !body.location?.trim() || !body.description?.trim()) {
-    return NextResponse.json({ error: "Title, location, and description are required." }, { status: 400 });
-  }
+  const limited = await enforceRateLimit(supabase, "jobs:update");
+  if (limited) return limited;
+  const parsed = await parseJsonBody(request, jobSchema);
+  if ("error" in parsed) return parsed.error;
+  const body = parsed.data;
 
   const { error } = await supabase
     .from("jobs")
     .update({
-      title: body.title.trim(),
-      location: body.location.trim(),
-      salary_range: body.salaryRange?.trim() || null,
-      description: body.description.trim(),
-      felon_friendly: Boolean(body.felonFriendly),
+      title: body.title,
+      location: body.location,
+      salary_range: body.salaryRange,
+      description: body.description,
+      felon_friendly: body.felonFriendly,
     })
     .eq("id", job.id);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return serverError("update job", error, "Could not update the job. Please try again.");
   }
 
-  const enrichResult = await enrichJobListing(supabase, user.id, job.id, {
-    title: body.title.trim(),
-    location: body.location.trim(),
-    salaryRange: body.salaryRange,
-    description: body.description.trim(),
-    felonFriendly: Boolean(body.felonFriendly),
-  });
+  const enrichResult = await enrichJobListing(supabase, user.id, job.id, body);
 
   if (!enrichResult.ok) {
+    console.error("[api] enrich updated job:", enrichResult.error);
     return NextResponse.json({
       success: true,
-      warning: `Job updated but AI enrichment failed: ${enrichResult.error}`,
+      warning: "Job updated, but the AI summary couldn't be refreshed yet.",
     });
   }
 
@@ -113,11 +109,13 @@ export async function DELETE(
   if ("error" in result) return result.error;
 
   const { supabase, job } = result;
+  const limited = await enforceRateLimit(supabase, "jobs:delete");
+  if (limited) return limited;
 
   const { error } = await supabase.from("jobs").delete().eq("id", job.id);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return serverError("delete job", error, "Could not delete the job. Please try again.");
   }
 
   return NextResponse.json({ success: true });
